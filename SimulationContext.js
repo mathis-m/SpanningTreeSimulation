@@ -60,24 +60,27 @@ class MinimalSpanTree {
 		{
 			this.shortestLinks.push(links.pop())
 		}
-		this.shortestLinks.push(links.pop())
+		let link = links.pop();
+		if (!!link)
+			this.shortestLinks.push(link)
 	}
 	
 	linkToString()
 	{
-		const sorted = this.shortestLinks.map(l => ({
-			...l, nodes: l.nodes.sort((a, b) => {
-				if (a.name < b.name)
-				{
-					return -1;
-				}
-				if (a.name > b.name)
-				{
-					return 1;
-				}
-				return 0;
-			})
-		})).sort((a, b) => {
+		const sorted = this.shortestLinks.map(link => {
+			return new SpanTreeLink(link.nodes.sort((a, b) => {
+					if (a.name < b.name)
+					{
+						return -1;
+					}
+					if (a.name > b.name)
+					{
+						return 1;
+					}
+					return 0;
+				}), link.cost
+			);
+		}).sort((a, b) => {
 			if (a.nodes[0].name < b.nodes[0].name)
 			{
 				return -1;
@@ -146,7 +149,7 @@ class SpanTreeNode {
 			cost: wayCost
 		});
 		informationPackage.data.hops = [...informationPackage.data.hops];
-		return informationPackage
+		return informationPackage;
 	};
 	
 	// process the returned information Package and builds the minimal Spantree
@@ -163,6 +166,11 @@ class SpanTreeNode {
 			}
 		}
 		this.minimalDiscoveredSpanTree = new MinimalSpanTree(this.connections);
+		this.network.emitReceivedInformation({
+			informationPackage,
+			mst: this.minimalDiscoveredSpanTree,
+			node: this
+		})
 	};
 	
 	// receive a package from the network with the cost
@@ -220,11 +228,12 @@ class SpanTreeNode {
 	};
 	
 	// internal
-	setNetwork(packageEmitFunc, pingEmitFunc)
+	setNetwork(packageEmitFunc, pingEmitFunc, addReceivedInfo)
 	{
 		this.network = {
 			emitPackage: (somePackage) => packageEmitFunc(this, somePackage),
-			emitPing: () => pingEmitFunc(this)
+			emitPing: () => pingEmitFunc(this),
+			emitReceivedInformation: (packageMst) => addReceivedInfo(packageMst)
 		};
 	}
 	
@@ -253,6 +262,8 @@ function SimulationContext()
 {
 	// it keeps track of all Node Containers
 	SimulationContext.prototype.container = [];
+	// for simulation information
+	SimulationContext.prototype.recivedPackageMst = [];
 	
 	// allows a node to send a Package
 	SimulationContext.prototype.sendPackage = (node, somePackage) => {
@@ -287,8 +298,13 @@ function SimulationContext()
 	// registers a node to the simulation context (creates a new container where node and links are stored)
 	SimulationContext.prototype.registerNode = (node, links) => {
 		let nodeContainer = new NodeContainer(node, links);
-		nodeContainer.node.setNetwork(this.sendPackage, this.pingSurrounding);
+		nodeContainer.node.setNetwork(this.sendPackage, this.pingSurrounding, this.addReceivedInfo);
 		return this.container.push(nodeContainer);
+	};
+	
+	//
+	SimulationContext.prototype.addReceivedInfo = (packageMst) => {
+		this.recivedPackageMst.push(packageMst);
 	};
 }
 
@@ -313,7 +329,7 @@ const simulate = (nodes, someLinks) => {
 	simulationContext.container.forEach(c => {
 		c.node.sendInformationRequest();
 	});
-	return simulationContext.__proto__.container[0].node.minimalDiscoveredSpanTree.root.minimalDiscoveredSpanTree;
+	return simulationContext.__proto__;
 };
 
 // run the simulation
