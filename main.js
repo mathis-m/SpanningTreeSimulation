@@ -3,36 +3,40 @@ const outEl = document.getElementById('textOut');
 const btnEl = document.getElementById('simulate');
 const dumpEl = document.getElementById('simulationDump');
 
-const dumpInformationPackages = (context, graph) => {
+const dumpInformationPackages = (context, graph, randomIndexOfNodes) => {
 	let res = "";
-	context.container.forEach(container => {
-		let nodeTemplate = `
+	const container = context.container[randomIndexOfNodes];
+	let nodeTemplate = `
 		<span style="text-decoration: underline"><span style="font-weight: bold">Node '${container.node.name}'</span> has sent a Information package through the graph '${graph.name}'.
 		It received following Result-Information packages of this Information package:</span><br>
 		`;
-		context.recivedPackageMst.filter(p => p.node.name === container.node.name).forEach(p => {
-			let hopString = "<br>";
-			p.informationPackage.data.hops.forEach(h => {
-				if(h.cost !== 0){
-					hopString += ` =${h.cost}=> `
+	context.recivedPackageMst.filter(p => p.node.name === container.node.name).forEach(p => {
+		let hopString = "<br>";
+		p.informationPackage.data.forEach(d => {
+			hopString += "<br>";
+			d.hops.forEach(h => {
+				if (h.cost !== 0)
+				{
+					hopString += ` =${h.cost}=> `;
 				}
 				hopString += h.node.name;
 				
-			});
-			nodeTemplate += `${hopString}<br>`;
-			nodeTemplate += `${parser.stringify(p.mst, graph.name)}<br>`;
+			})
 		});
-		res += `${nodeTemplate}<br>`
+		nodeTemplate += `${hopString}<br>`;
+		nodeTemplate += `${parser.stringify(p.mst, graph.name)}<br>`;
 	});
+	res += `${nodeTemplate}<br>`;
 	dumpEl.innerHTML = res;
 };
 
 const simulateClick = () => {
 	const graph = parser.parse(inputEl.value);
-	let context = simulate(graph.nodes, graph.links);
+	let randomIndexOfNodes = Math.floor(Math.random() * graph.nodes.length);
+	let context = simulate(graph.nodes, graph.links, randomIndexOfNodes);
 	const minSpanTree = context.container[0].node.minimalDiscoveredSpanTree.root.minimalDiscoveredSpanTree;
 	outEl.value = parser.stringify(minSpanTree, graph.name);
-	dumpInformationPackages(context, graph);
+	dumpInformationPackages(context, graph, randomIndexOfNodes);
 };
 btnEl.addEventListener('click', simulateClick);
 const test = `

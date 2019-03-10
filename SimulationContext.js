@@ -2,8 +2,16 @@
 const packageType = {
 	INFORMATION: 0,
 	RETURN_INFORMATION: 1,
-	NORMAL: 2
+	MST_SHARE: 2,
+	NORMAL: 3
 };
+const packageTypeNames = {
+	0: "Information Package",
+	1: "Returning Information Package",
+	2: "Minimal Spanning Tree Share Package",
+	3: "Normal Package"
+};
+
 
 class SpanTreeLink {
 	constructor(nodes, value)
@@ -15,24 +23,80 @@ class SpanTreeLink {
 
 // a package we can send through the "network"
 class SimulationPackage {
-	constructor(type, data, target)
+	constructor(type, data, target, destination)
 	{
 		this.type = type;
 		this.data = data;
 		this.target = target;
+		this.destination = destination;
 	}
-	
 }
 
 // makes a spantree
 class MinimalSpanTree {
 	
+	getNextNodeWhenGoing(from, to)
+	{
+		let nextStep = this.getNextStep(from, to);
+		return nextStep;
+	}
+	
+	getNextStep(from, to, possibleRet, lastFrom)
+	{
+		if (from.name === to.name)
+		{
+			return possibleRet;
+		}
+		let nodes = this.shortestLinks.filter(l => l.nodes.findIndex(n => n.name === from.name) !== -1)
+			.map(siblingLink => siblingLink.nodes.find(n => n.name !== from.name)).filter(n => !lastFrom ? true : n.name !== lastFrom.name);
+		for (const node of nodes)
+		{
+			let ret;
+			if (!possibleRet)
+			{
+				ret = this.getNextStep(node, to, node, from);
+			}
+			else
+			{
+				ret = this.getNextStep(node, to, possibleRet, from);
+			}
+			if (!!ret)
+			{
+				return ret;
+			}
+			
+		}
+		
+	}
+	
 	allNodesAreConnected(allNodes)
 	{
-		let allConnected = true;
-		allNodes.forEach(node =>
-			allConnected &= this.shortestLinks.findIndex(link => link.nodes.findIndex(n => n.name === node.name) !== -1) !== -1);
-		return !!allConnected;
+		const result = [];
+		const array = this.shortestLinks.flatMap(l => l.nodes);
+		const map = new Map();
+		for (const item of array)
+		{
+			if (!map.has(item.name))
+			{
+				map.set(item.name, true);
+				result.push(item);
+			}
+		}
+		let allNodesAreIncluded = result.length === allNodes.length;
+		let allNodesAreConnected = true;
+		if (allNodesAreIncluded)
+			for (const node of this.allNodes)
+			{
+				if (node.name !== this.root.name)
+				{
+					if (!this.getNextNodeWhenGoing(this.root, node))
+					{
+						allNodesAreConnected = false;
+						break;
+					}
+				}
+			}
+		return allNodesAreIncluded && allNodesAreConnected;
 	};
 	
 	constructor(spanTreeLinks)
@@ -41,28 +105,31 @@ class MinimalSpanTree {
 		
 		let links = [...spanTreeLinks];
 		links = links.sort((a, b) => a.cost - b.cost).reverse();
-		const allNodes = [];
-		spanTreeLinks.forEach(link => {
-			link.nodes.forEach(node => {
-				if (allNodes.findIndex(n => n.name === node.name) === -1)
-				{
-					allNodes.push(node);
-					if (!this.root || this.root.value > node.value)
-					{
-						this.root = node;
-					}
-				}
-			})
-		});
+		this.allNodes = [];
+		const array = links.flatMap(l => l.nodes);
 		
+		const map = new Map();
+		for (const item of array)
+		{
+			if (!map.has(item.name))
+			{
+				map.set(item.name, true);
+				this.allNodes.push(item);
+			}
+		}
+		this.root = this.allNodes.sort((a, b) => a.value - b.value)[0];
 		
-		while (this.allNodesAreConnected(allNodes) === false)
+		while (!this.allNodesAreConnected(this.allNodes))
 		{
 			this.shortestLinks.push(links.pop())
 		}
-		let link = links.pop();
+		if (this.shortestLinks.length < 5)
+		{
+			debugger;
+		}
+		/*let link = links.pop();
 		if (!!link)
-			this.shortestLinks.push(link)
+			this.shortestLinks.push(link)*/
 	}
 	
 	linkToString()
@@ -127,6 +194,9 @@ class SpanTreeNode {
 				node
 			));
 		});
+		this.minimalDiscoveredSpanTree.allNodes.filter(n => n.name !== this.name).forEach(node => {
+			this.emitPackage(new SimulationPackage(packageType.MST_SHARE, {mst: this.minimalDiscoveredSpanTree}, this.minimalDiscoveredSpanTree.getNextNodeWhenGoing(this, node), node))
+		});
 	};
 	
 	// gets sibling nodes
@@ -138,6 +208,7 @@ class SpanTreeNode {
 	// passes the package to the network
 	emitPackage(somePackage)
 	{
+		console.log(`Node ${this.name} sends a package(${packageTypeNames["" + somePackage.type]}) to ${somePackage.target.name}`);
 		this.network.emitPackage(somePackage);
 	};
 	
@@ -155,22 +226,25 @@ class SpanTreeNode {
 	// process the returned information Package and builds the minimal Spantree
 	processReturnedInformation(informationPackage)
 	{
-		for (let i = 0; i < informationPackage.data.hops.length - 1; i++)
-		{
-			const nodes = informationPackage.data.hops.map(h => h.node).slice(i, i + 2);
-			const cost = informationPackage.data.hops[i + 1].cost;
-			const knownConnectionIndex = this.connections.findIndex(connection => connection.nodes.findIndex(n => n.name === nodes[0].name) !== -1 && connection.nodes.findIndex(n => n.name === nodes[1].name) !== -1);
-			if (knownConnectionIndex === -1)
+		informationPackage.data.forEach(d => {
+			for (let i = 0; i < d.hops.length - 1; i++)
 			{
-				this.connections.push(new SpanTreeLink(nodes, cost))
+				const nodes = d.hops.map(h => h.node).slice(i, i + 2);
+				const cost = d.hops[i + 1].cost;
+				const knownConnectionIndex = this.connections.findIndex(connection => connection.nodes.findIndex(n => n.name === nodes[0].name) !== -1 && connection.nodes.findIndex(n => n.name === nodes[1].name) !== -1);
+				if (knownConnectionIndex === -1)
+				{
+					this.connections.push(new SpanTreeLink(nodes, cost));
+				}
 			}
-		}
+		});
 		this.minimalDiscoveredSpanTree = new MinimalSpanTree(this.connections);
 		this.network.emitReceivedInformation({
 			informationPackage,
 			mst: this.minimalDiscoveredSpanTree,
 			node: this
-		})
+		});
+		
 	};
 	
 	// receive a package from the network with the cost
@@ -179,53 +253,140 @@ class SpanTreeNode {
 		// handle information type package
 		if (somePackage.type === packageType.INFORMATION)
 		{
-			const siblingNodes = this.emitPing();
-			let isFinished = true;
-			for (const node of siblingNodes)
-			{
-				isFinished &= somePackage.data.hops.findIndex(h => node.name === h.node.name) !== -1;
-				if (!isFinished) break;
-			}
-			let newPackage = {...this.appendMyInformation(somePackage, wayCost)};
-			if (isFinished)
-			{
-				newPackage = new SimulationPackage(packageType.RETURN_INFORMATION, newPackage.data, newPackage.data.hops[newPackage.data.hops.length - 2].node)
-			}
-			if (newPackage.type === packageType.RETURN_INFORMATION)
-			{
-				this.emitPackage(newPackage);
-			}
-			else
-			// send information package to all siblings
-				siblingNodes.forEach(node => {
-					if (somePackage.data.hops.findIndex(h => h.node.name === node.name) === -1)
-					{
-						const p = new SimulationPackage(newPackage.type, {
-							node: {...newPackage.data.node},
-							value: newPackage.data.value,
-							hops: [...newPackage.data.hops]
-						}, node);
-						this.emitPackage(p);
-					}
-				})
+			this.handleInformationPackage(somePackage, wayCost);
 		}
 		// handle Return package
 		else if (somePackage.type === packageType.RETURN_INFORMATION)
 		{
-			// if it wants to me
-			if (somePackage.data.hops[0].node.name === this.name)
-			{
-				this.processReturnedInformation(somePackage);
-			}
-			// else let it go back the way it came before it was a Return package
-			else
-			{
-				const targetIndex = somePackage.data.hops.findIndex(n => n.node.name === this.name) - 1;
-				somePackage.target = somePackage.data.hops[targetIndex].node;
-				this.emitPackage(somePackage);
-			}
+			this.handleReturnedInformationPackage(somePackage);
+		}
+		else if (somePackage.type === packageType.MST_SHARE)
+		{
+			this.minimalDiscoveredSpanTree = somePackage.data.mst;
+			this.handlePackage(somePackage);
+		}
+		else if (somePackage.type === packageType.NORMAL)
+		{
+			this.handlePackage(somePackage);
 		}
 	};
+	
+	handleReturnedInformationPackage(somePackage)
+	{
+// if it wants to me
+		if (somePackage.data[0].hops[0].node.name === this.name)
+		{
+			this.processReturnedInformation(somePackage);
+		}
+		// else let it go back the way it came before it was a Return package
+		else
+		{
+			let targetIndex = -2;
+			let c = -1;
+			while (targetIndex < 0)
+			{
+				c++;
+				targetIndex = somePackage.data[c].hops.findIndex(n => n.node.name === this.name) + 1;
+			}
+			
+			console.log(`Received IPackage at ${this.name}<=${somePackage.data[c].hops[targetIndex].node.name}`);
+			this.countSplits--;
+			if (this.countSplits === 0 && !this.queuedReturnInformationPackage)
+			{
+				let targetIndex = -2;
+				let c = -1;
+				while (targetIndex < 0)
+				{
+					c++;
+					targetIndex = somePackage.data[c].hops.findIndex(n => n.node.name === this.name) - 1;
+				}
+				somePackage.target = somePackage.data[c].hops[targetIndex].node;
+				this.emitPackage(somePackage);
+			}
+			else
+			{
+				if (!this.queuedReturnInformationPackage)
+				{
+					this.queuedReturnInformationPackage = somePackage;
+				}
+				else if (this.countSplits === 0)
+				{
+					let targetIndex = -2;
+					let c = -1;
+					while (targetIndex < 0)
+					{
+						c++;
+						targetIndex = this.queuedReturnInformationPackage.data[c].hops.findIndex(n => n.node.name === this.name) - 1;
+					}
+					this.queuedReturnInformationPackage.target = this.queuedReturnInformationPackage.data[c].hops[targetIndex].node;
+					this.emitPackage(this.queuedReturnInformationPackage);
+				}
+				else
+				{
+					let arr = somePackage.data.length !== undefined ? [...somePackage.data] : [somePackage.data];
+					this.queuedReturnInformationPackage.data.push(...arr);
+				}
+			}
+		}
+	}
+	
+	handleInformationPackage(somePackage, wayCost)
+	{
+		
+		const siblingNodes = this.emitPing();
+		let map = somePackage.data.hops.map(h => h.node.name);
+		let isFinished = this.nodeHasSplitted;
+		this.nodeHasSplitted = true;
+		console.log(map, "   ", this.name);
+		let newPackage = {...this.appendMyInformation(somePackage, wayCost)};
+		if (isFinished)
+		{
+			newPackage = new SimulationPackage(packageType.RETURN_INFORMATION, [newPackage.data], newPackage.data.hops[newPackage.data.hops.length - 2].node);
+		}
+		if (newPackage.type === packageType.RETURN_INFORMATION)
+		{
+			this.emitPackage(newPackage);
+		}
+		else
+		// send information package to all siblings
+		{
+			let nextHops = siblingNodes.filter(n => newPackage.data.hops[newPackage.data.hops.length - 2].name !== n.name);
+			
+			this.countSplits = nextHops.length;
+			if (this.countSplits > 1)
+				console.log(`>>>> SPLITS AT ${this.name}`);
+			
+			nextHops.forEach(node => {
+				if (this.countSplits > 1)
+					console.log(`>>>> SPLIT AT ${this.name}`);
+				const p = new SimulationPackage(newPackage.type, {
+					node: {...newPackage.data.node},
+					value: newPackage.data.value,
+					hops: [...newPackage.data.hops]
+				}, node);
+				this.emitPackage(p);
+				if (this.countSplits > 1)
+					
+					console.log(`<<<< SPLIT RETURNED AT ${this.name}`);
+			});
+			if (this.countSplits > 1)
+				console.log(`<<<< ALL SPLITS RETURNED AT ${this.name}`);
+		}
+	}
+	
+	handlePackage(somePackage)
+	{
+		if (somePackage.destination.name === this.name)
+		{
+			console.log(`${this.name} received following package: `, somePackage);
+		}
+		else
+		{
+			const newTarget = this.minimalDiscoveredSpanTree.getNextNodeWhenGoing(this, somePackage.destination);
+			somePackage.target = newTarget;
+			this.emitPackage(somePackage);
+		}
+	}
 	
 	// internal
 	setNetwork(packageEmitFunc, pingEmitFunc, addReceivedInfo)
@@ -241,9 +402,13 @@ class SpanTreeNode {
 	{
 		this.name = name;
 		this.value = value;
+		this.countSplits = 0;
+		this.nodeHasSplitted = false;
 		// known Data
 		this.connections = [];
 	}
+	
+	
 }
 
 // isolates the knowledge of the node.
@@ -309,7 +474,7 @@ function SimulationContext()
 }
 
 
-const simulate = (nodes, someLinks) => {
+const simulate = (nodes, someLinks, randomIndexOfNodes) => {
 	// get simulation Context
 	const simulationContext = new SimulationContext();
 	// get them in the right data format
@@ -325,10 +490,9 @@ const simulate = (nodes, someLinks) => {
 		simulationContext.registerNode(node, spantreeLinks);
 	});
 	
-	// let each node broadcast its Information.
-	simulationContext.container.forEach(c => {
-		c.node.sendInformationRequest();
-	});
+	// let one node start the network indexing process(gets all links and makes mst then pushes mst to other nodes)
+	console.log('Node used to discover the network: ', simulationContext.container[randomIndexOfNodes].node);
+	simulationContext.container[randomIndexOfNodes].node.sendInformationRequest();
 	return simulationContext.__proto__;
 };
 
