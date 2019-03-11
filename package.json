@@ -1,0 +1,25 @@
+{
+  "name": "spanningtreesimulation",
+  "version": "1.0.0",
+  "description": "Simulate a SpanningTree generation via network approach.",
+  "main": "main.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mathis-m/SpanningTreeSimulation.git"
+  },
+  "author": "inf17098",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mathis-m/SpanningTreeSimulation/issues"
+  },
+  "homepage": "https://github.com/mathis-m/SpanningTreeSimulation#readme",
+  "devDependencies": {
+    "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "rxjs": "^6.4.0"
+  }
+}

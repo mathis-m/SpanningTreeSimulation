@@ -1,3 +1,11 @@
+class Parser {
+	public parse = (text: string) => {
+
+	}
+}
+
+
+
 const parser = {
 	parse: (text) => {
 		const nodes = [];
