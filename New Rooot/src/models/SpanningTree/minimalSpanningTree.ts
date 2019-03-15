@@ -33,9 +33,7 @@ export class MinimalSpanTree {
 			{
 				return ret;
 			}
-
 		}
-
 	}
 
 	allNodesAreConnected(allNodes)

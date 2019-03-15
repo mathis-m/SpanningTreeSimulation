@@ -1,17 +1,10 @@
 {
 	"compilerOptions": {
-		"module": "system",
+		"outDir": "./dist/",
 		"moduleResolution": "node",
-		"target": "es5",
-		"lib": ["es6", "dom", "esnext"],
+		"module": "es6",
 		"sourceMap": true,
-		"sourceRoot": "./src/",
-		"outFile": "dist/bundle.js"
-	},
-		"exclude": [
-		"node_modules"
-	],
-	"include": [
-		"src/main.ts"
-	]
+		"target": "es5",
+		"lib": ["esnext", "es6", "dom"]
+	}
 }

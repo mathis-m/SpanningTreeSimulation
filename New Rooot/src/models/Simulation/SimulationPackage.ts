@@ -1,5 +1,6 @@
 export interface SimulationPackage {
 	protocol: string,
 	content: any,
-	target: string
+	target: string,
+	cost?: number
 }

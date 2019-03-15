@@ -4,18 +4,20 @@ import {Simulation} from "./models/Simulation/Simulation";
 
 const inputArea = document.getElementById('textIn') as HTMLTextAreaElement;
 const outputArea = document.getElementById('textOut') as HTMLTextAreaElement;
-const simulationButton = document.getElementById('simulation_btn') as HTMLButtonElement;
+const simulationButton = document.getElementById('simulate_btn') as HTMLButtonElement;
 
-// click impl
-const onSimulationClick = () => {
-	const parseResult = parse(inputArea.value);
-	const simulation = new Simulation(parseResult.nodes);
-	console.log(simulation);
-};
-
-// call click impl on simulationButton click
-simulationButton.addEventListener('click', onSimulationClick);
-
+const simpleTest = `
+Graph mygraph {
+	// Node
+	A = 2;
+	B = 1;
+	C = 3;
+	
+	// Links und zugeh. Kosten
+	A - B : 1;
+	A - C : 1;
+	C - B : 2;
+}`;
 const test = `
 Graph mygraph {
 	// Node
@@ -37,4 +39,17 @@ Graph mygraph {
 	D - F : 10;
 	E - F : 2;
 }`;
-inputArea.value = test;
+inputArea.value = simpleTest;
+console.log(inputArea);
+// click impl
+const onSimulationClick = () => {
+    const parseResult = parse(inputArea.value);
+    const simulation = new Simulation(parseResult.nodes);
+    console.log(simulation);
+    simulation.startIndexingFromRandomBridge().then(mst => {
+        console.log(mst);
+    })
+};
+
+// call click impl on simulationButton click
+simulationButton.addEventListener('click', onSimulationClick);
