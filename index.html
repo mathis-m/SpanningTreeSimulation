@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        .full-size {
+            height: 100%;
+            width: 100%;
+        }
+
+        .item-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+            align-items: center;
+        }
+
+        .item {
+            height: 80%;
+            border: #aaa8b0 solid thin;
+            box-shadow: 5px 5px 4px #888888;
+        }
+
+        .item h3 {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="full-size" style="display: flex; flex-direction: column">
+    <div style="width: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="width: 100%; text-align: center">
+            <h1>Spanning Tree Simulation using custom Protocol</h1>
+        </div>
+        <div style="width: 50%; display: flex; justify-content: space-between;">
+            <div style="height: 380px; width: 40%">
+                <label for="textIn">Input Graph</label>
+                <textarea style="height: 100%; width: 100%" id="textIn"></textarea>
+            </div>
+            <div style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
+                <button style="align-self: center;" id="simulate_btn">Simulate</button>
+                Multiplier for cost in seconds
+                <input type="number" id="mult" value="0.5">
+            </div>
+            <div style="height: 380px; width: 40%">
+                <label for="textOut">Output MST</label>
+                <textarea style="height: 100%; width: 100%" id="textOut" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="full-size" style="display: flex; justify-content: center; align-items: center">
+        <div id="simulationDump" class="full-size">
+            <div class="item-container" id="container_target">
+                <div class="item">
+                    <h3>Packages:</h3>
+                    <div id="pkg_s_target">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+
+</div>
+<script src="bundle.js"></script>
+</body>
+</html>
