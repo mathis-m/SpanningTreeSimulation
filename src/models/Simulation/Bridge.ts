@@ -4,8 +4,8 @@ import {MinimalSpanTree} from "../SpanningTree/minimalSpanningTree";
 import {tryResolvePackage} from "tslint/lib/utils";
 
 export class Bridge {
-    private rootOfIndexing = false;
-    private returnTo: string[] = [];
+    public rootOfIndexing = false;
+    public returnTo: string[] = [];
     // Bridge data
     public name: string;
     public value: number;
@@ -26,16 +26,18 @@ export class Bridge {
 
     // simulation Connection
     public connection: SimulationConnection;
-
-    constructor(name: string, value: number, connection: SimulationConnection) {
+    private dumpChanges: () => void;
+    constructor(name: string, value: number, connection: SimulationConnection, dumpChanges: (b) => void) {
         this.name = name;
         this.value = value;
         this.connection = connection;
         this.connection.receive.subscribe((pkg) => this.receive(pkg));
+        this.dumpChanges = () => dumpChanges(this);
     }
 
     public async indexNetwork() {
         this.rootOfIndexing = true;
+        this.dumpChanges();
         let siblings = (await this.connection.ping);
         this.WAITING_FOR_BRIDGES = siblings;
         siblings.forEach(target => {
@@ -56,12 +58,13 @@ export class Bridge {
     }
 
     public handleCSTPPackage(pkg: SimulationPackage) {
-        if(this.INDEXED)
+        if (this.INDEXED || this.rootOfIndexing &&  pkg.content.from)
             return;
         console.log(this.name, 'received pkg');
         if (this.DISCOVERED_LINKS.length === 0 && !this.rootOfIndexing) {
             this.connection.ping.then(bridges => {
                 this.WAITING_FOR_BRIDGES = bridges.filter(name => name !== pkg.content.from.name);
+                this.dumpChanges();
                 console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
                 this.WAITING_FOR_BRIDGES.forEach(target => this.send({
                     protocol: 'CSTP',
@@ -73,6 +76,8 @@ export class Bridge {
                 }));
                 if (this.WAITING_FOR_BRIDGES.length === 0) {
                     const returnTo = this.DISCOVERED_LINKS[0].nodes.find(n => n.name !== this.name);
+                    this.dumpChanges();
+
                     this.send({
                         protocol: 'CSTP',
                         content: {
@@ -88,6 +93,7 @@ export class Bridge {
                         const mst = new MinimalSpanTree(this.DISCOVERED_LINKS);
                         this.connection.finishedIndexing.next(mst);
                     }
+                    this.dumpChanges();
                 }
             });
             this.DISCOVERED_LINKS.push({
@@ -95,6 +101,8 @@ export class Bridge {
                 nodes: [{name: this.name, value: this.value}, pkg.content.from]
             });
             this.returnTo.push(pkg.content.from.name);
+            this.dumpChanges();
+
             console.log("returning from ", this.name, "to ", this.returnTo);
 
         }
@@ -103,7 +111,7 @@ export class Bridge {
             this.WAITING_FOR_BRIDGES.splice(this.WAITING_FOR_BRIDGES.findIndex(n => n === name), 1);
             console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
             this.DISCOVERED_LINKS.push(...pkg.content.discoveredLinks);
-        } else if(this.WAITING_FOR_BRIDGES && pkg.content.from){
+        } else if (this.WAITING_FOR_BRIDGES && pkg.content.from) {
             this.WAITING_FOR_BRIDGES.splice(this.WAITING_FOR_BRIDGES.findIndex(n => n === pkg.content.from.name), 1);
             console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
             this.returnTo.push(pkg.content.from.name);
@@ -113,7 +121,10 @@ export class Bridge {
                 nodes: [{name: this.name, value: this.value}, pkg.content.from]
             });
         }
+        this.dumpChanges();
+
         if (!!this.WAITING_FOR_BRIDGES && this.WAITING_FOR_BRIDGES.length === 0) {
+            console.log(this.name, 'sending', this.DISCOVERED_LINKS);
             this.returnTo.forEach(target => {
                 this.send({
                     protocol: 'CSTP',
@@ -131,13 +142,16 @@ export class Bridge {
             } else {
                 const links = [];
                 this.DISCOVERED_LINKS.forEach(l => {
-                    if(!links.find(link => l.nodes.findIndex(n => n.name === link.nodes[0].name) !== -1 && l.nodes.findIndex(n => n.name === link.nodes[1].name) !== -1)){
+                    if (!links.find(link => l.nodes.findIndex(n => n.name === link.nodes[0].name) !== -1 && l.nodes.findIndex(n => n.name === link.nodes[1].name) !== -1)) {
                         links.push(l);
                     }
                 });
+                console.log('dl', this.DISCOVERED_LINKS.map(l => l.nodes));
+                console.log('l', links);
                 const mst = new MinimalSpanTree(links);
                 this.connection.finishedIndexing.next(mst);
             }
+            this.dumpChanges();
         }
     }
 

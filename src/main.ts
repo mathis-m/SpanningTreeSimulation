@@ -1,10 +1,13 @@
 // references to the dom
 import {parse, stringify} from "./parser";
 import {Simulation} from "./models/Simulation/Simulation";
+import {SimulationPackage} from "./models/Simulation/SimulationPackage";
 
 const inputArea = document.getElementById('textIn') as HTMLTextAreaElement;
 const outputArea = document.getElementById('textOut') as HTMLTextAreaElement;
 const simulationButton = document.getElementById('simulate_btn') as HTMLButtonElement;
+
+
 
 const simpleTest = `
 Graph mygraph {
@@ -39,12 +42,12 @@ Graph mygraph {
 	D - F : 10;
 	E - F : 2;
 }`;
-inputArea.value = simpleTest;
+inputArea.value = test;
 console.log(inputArea);
 // click impl
 const onSimulationClick = () => {
     const parseResult = parse(inputArea.value);
-    const simulation = new Simulation(parseResult.nodes);
+    const simulation = new Simulation(parseResult.nodes, +(document.getElementById('mult') as HTMLInputElement).value);
     console.log(simulation);
     simulation.startIndexingFromRandomBridge().then(mst => {
         outputArea.value = stringify(mst, parseResult.graphName);

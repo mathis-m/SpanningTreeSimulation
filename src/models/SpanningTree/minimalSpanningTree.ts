@@ -5,33 +5,9 @@ export class MinimalSpanTree {
     public allNodes: { name: string, value: number }[] = [];
     public root: { name: string, value: number };
 
-    getNextNodeWhenGoing(from, to) {
-        let nextStep = this.getNextStep(from, to);
-        return nextStep;
-    }
-
-    getNextStep(from, to, possibleRet?, lastFrom?) {
-        if (from.name === to.name) {
-            return possibleRet;
-        }
-        let nodes = this.shortestLinks.filter(l => l.nodes.findIndex(n => n.name === from.name) !== -1)
-            .map(siblingLink => siblingLink.nodes.find(n => n.name !== from.name)).filter(n => !lastFrom ? true : n.name !== lastFrom);
-        for (const node of nodes) {
-            let ret;
-            if (!possibleRet) {
-                ret = this.getNextStep(node, to, node, from);
-            } else {
-                ret = this.getNextStep(node, to, possibleRet, from);
-            }
-            if (!!ret) {
-                return ret;
-            }
-        }
-    }
-
-    allNodesAreConnected(allNodes) {
+    allNodesAreConnected(allNodes, shortestLinks = this.shortestLinks) {
         const result = [];
-        const array = this.shortestLinks.flatMap(l => l.nodes);
+        const array = shortestLinks.flatMap(l => l.nodes);
         const map = new Map();
         for (const item of array) {
             if (!map.has(item.name)) {
@@ -40,25 +16,25 @@ export class MinimalSpanTree {
             }
         }
         let allNodesAreIncluded = result.length === allNodes.length;
-        let allNodesAreConnected = true;
+        let allNodesAreConnected;
         if (allNodesAreIncluded) {
-            const tempNode = this.shortestLinks[0].nodes[0];
-            const nodes = this.getConnectedNodes(tempNode);
-            if(nodes == this.allNodes){
-
-            }
+            let nodesToFind = [...this.allNodes];
+            const allFound = () => nodesToFind.length === 0;
+            const getDirectConnected = (node) => shortestLinks
+                .filter(link => link.nodes.findIndex(n => n.name === node.name) !== -1)
+                .flatMap(link => link.nodes.find(n => n.name !== node.name))
+                .filter(n => nodesToFind.findIndex(n1 => n1.name === n.name) !== -1);
+            const removeNode = (node) => nodesToFind.splice(nodesToFind.findIndex(n => n.name === node.name), 1);
+            const traverse = (currentNode) => {
+                removeNode(currentNode);
+                const connected = getDirectConnected(currentNode);
+                connected.forEach(next => traverse(next));
+            };
+            traverse(this.root);
+            allNodesAreConnected = allFound();
         }
         return allNodesAreIncluded && allNodesAreConnected;
     };
-    private getConnectedNodes(node, res = []) {
-        const links = this.shortestLinks.filter(l => l.nodes.findIndex(n => n.name === node.name && res.findIndex(node => node.name === n.name) === -1) !== -1);
-        links.forEach(l => {
-            let node1 = l.nodes.find(n => n.name !== node.name);
-            res.push(node1);
-            res.push(...this.getConnectedNodes(node1));
-        });
-        return res;
-    }
 
     constructor(spanTreeLinks: SimulationLink[]) {
 
@@ -75,13 +51,34 @@ export class MinimalSpanTree {
             }
         }
         this.root = this.allNodes.sort((a, b) => a.value - b.value)[0];
-
+        console.log([...links]);
         while (!this.allNodesAreConnected(this.allNodes)) {
-            this.shortestLinks.push(links.pop())
+            let items = links.pop();
+            this.shortestLinks.push(items);
+            if(this.allNodesAreConnected(this.allNodes)){
+                let temp, last = temp = [...this.shortestLinks];
+                while(!!temp){
+                    last = temp;
+                    temp = this.tryToRemove(temp);
+                }
+                if(last.length < this.shortestLinks.length){
+                    this.shortestLinks = last;
+                }
+            }
         }
-        if (this.shortestLinks.length < 5) {
-            debugger;
+        console.log(this.shortestLinks);
+    }
+    private tryToRemove(shortestLinks){
+        let res;
+        for (const l of shortestLinks) {
+            let simulationLinks = [...shortestLinks];
+            simulationLinks.splice(simulationLinks.findIndex(link => link === l),1);
+            if(this.allNodesAreConnected(this.allNodes, simulationLinks)){
+                res = simulationLinks;
+                break;
+            }
         }
+        return res;
     }
 
     linkToString() {
