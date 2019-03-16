@@ -11,9 +11,7 @@ export class Bridge {
     public value: number;
 
     // Data discovered
-    public known_ROOT_ID?: string;
-    public known_NEXT_HOP_TO_ROOT?: string;
-    public known_COST_TO_ROOT?: number;
+    public MST: MinimalSpanTree;
 
     // data for CentralSpanningTreeProtocol
     public INDEXED: boolean;
@@ -91,6 +89,7 @@ export class Bridge {
                         this.connection.finishedIndexing.next();
                     } else {
                         const mst = new MinimalSpanTree(this.DISCOVERED_LINKS);
+                        this.MST = mst;
                         this.connection.finishedIndexing.next(mst);
                     }
                     this.dumpChanges();
@@ -149,6 +148,7 @@ export class Bridge {
                 console.log('dl', this.DISCOVERED_LINKS.map(l => l.nodes));
                 console.log('l', links);
                 const mst = new MinimalSpanTree(links);
+                this.MST = mst;
                 this.connection.finishedIndexing.next(mst);
             }
             this.dumpChanges();

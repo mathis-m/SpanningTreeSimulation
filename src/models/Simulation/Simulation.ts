@@ -9,6 +9,19 @@ export class Simulation {
     public bridges: Bridge[] = [];
 
     constructor(public nodes: SpanningTreeNode[], multiplicatorForCostInSeconds = 0.5) {
+        const target = document.getElementById('container_target') as HTMLDivElement;
+        target.childNodes.forEach(n => n.remove());
+        target.childNodes.forEach(n => n.remove());
+        target.childNodes.forEach(n => n.remove());
+        const initialPackagesTemplate =`
+<div class="item" id="init_pkg">
+    <h3>Packages:</h3>
+    <div id="pkg_s_target">
+
+    </div>
+</div>
+`;
+        target.insertAdjacentElement("beforeend", new DOMParser().parseFromString(initialPackagesTemplate, "text/html").getElementById(`init_pkg`));
         nodes.forEach(node => {
             let siblingNodes = node.links.map(l => l.toNode);
             const conn = new SimulationConnection(siblingNodes);
@@ -65,7 +78,7 @@ export class Simulation {
     }
 
     createDomBridges() {
-        const pkg_s_target = document.getElementById('container_target') as HTMLDivElement;
+        const target = document.getElementById('container_target') as HTMLDivElement;
         const bridgeTemplate = (bridge: Bridge) => `
 <div class="item" id="bridge_${bridge.value}">
     <h3>Bridge ${bridge.name}</h3>
@@ -80,7 +93,7 @@ export class Simulation {
             }
             return 0;
         }).forEach(bridge => {
-            pkg_s_target.insertAdjacentElement("beforeend", new DOMParser().parseFromString(bridgeTemplate(bridge), "text/html").getElementById(`bridge_${bridge.value}`));
+            target.insertAdjacentElement("beforeend", new DOMParser().parseFromString(bridgeTemplate(bridge), "text/html").getElementById(`bridge_${bridge.value}`));
         })
     }
 
@@ -90,8 +103,10 @@ export class Simulation {
     <div style="width: 100%; height: 100%; overflow-y: auto">
         <h3>Bridge ${bridge.name}</h3>
         ${bridge.rootOfIndexing?'Indexing Root!': ''}<br>
-        Known links: [<BLOCKQUOTE>${bridge.DISCOVERED_LINKS.map(l => l.nodes.map(n => n.name).join('-') + ':' + l.cost).join(',<br>')}</BLOCKQUOTE>]<br>
-        ${!bridge.rootOfIndexing ? `Returning Data to: [<BLOCKQUOTE>${bridge.returnTo.join(',<br>')}</BLOCKQUOTE>]`: ''}
+        Known links: [<br><BLOCKQUOTE>${bridge.DISCOVERED_LINKS.map(l => l.nodes.map(n => n.name).join('-') + ':' + l.cost).join(',<br>')}</BLOCKQUOTE><br>]<br>
+        ${!bridge.rootOfIndexing && bridge.INDEXED ? `Node has finished indexing!<br>Returning Data to: [<br><BLOCKQUOTE>${bridge.returnTo.join(',<br>')}</BLOCKQUOTE><br>]`: ''}
+        ${bridge.rootOfIndexing && bridge.INDEXED ? `Network has finished indexing!<br>MST generated.<br>Sending MST to: [<br><BLOCKQUOTE>${bridge.MST.allNodes.map(n => n.name).filter(s => s !== bridge.name).join(',<br>')}</BLOCKQUOTE><br>]`: ''}
+        
     </div>
 </div>
 `;

@@ -1,4 +1,4 @@
-// references to the dom
+    // references to the dom
 import {parse, stringify} from "./parser";
 import {Simulation} from "./models/Simulation/Simulation";
 import {SimulationPackage} from "./models/Simulation/SimulationPackage";
