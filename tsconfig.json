@@ -1,11 +1,10 @@
 {
-  "compilerOptions": {
-    "module": "ES6",
-    "target": "es5",
-    "sourceMap": true,
-    "lib": ["es2015"]
-  },
-  "exclude": [
-    "node_modules"
-  ]
+	"compilerOptions": {
+		"outDir": "./dist/",
+		"moduleResolution": "node",
+		"module": "es6",
+		"sourceMap": true,
+		"target": "es5",
+		"lib": ["esnext", "es6", "dom"]
+	}
 }

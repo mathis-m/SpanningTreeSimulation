@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/SpanningTreeSimulation.iml" filepath="$PROJECT_DIR$/.idea/SpanningTreeSimulation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/SpaningtreeSimulationTypescript.iml" filepath="$PROJECT_DIR$/.idea/SpaningtreeSimulationTypescript.iml" />
     </modules>
   </component>
 </project>

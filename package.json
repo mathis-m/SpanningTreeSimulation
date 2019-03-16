@@ -1,25 +1,23 @@
 {
-  "name": "spanningtreesimulation",
-  "version": "1.0.0",
-  "description": "Simulate a SpanningTree generation via network approach.",
-  "main": "main.js",
-  "scripts": {
-    "test": "test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mathis-m/SpanningTreeSimulation.git"
-  },
-  "author": "inf17098",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mathis-m/SpanningTreeSimulation/issues"
-  },
-  "homepage": "https://github.com/mathis-m/SpanningTreeSimulation#readme",
-  "devDependencies": {
-    "typescript": "^3.3.3333"
-  },
-  "dependencies": {
-    "rxjs": "^6.4.0"
-  }
+	"name": "spaningtreesimulationtypescript",
+	"version": "1.0.0",
+	"description": "",
+	"main": "dist/main.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "webpack"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"path": "^0.12.7",
+		"rxjs": "^6.4.0",
+		"tslint": "^5.13.1"
+	},
+	"devDependencies": {
+		"ts-loader": "^5.3.3",
+		"typescript": "^3.3.3333",
+		"webpack": "^4.29.6",
+		"webpack-cli": "^3.3.0"
+	}
 }
