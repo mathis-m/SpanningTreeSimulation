@@ -1,7 +1,11 @@
 import {SimulationConnection} from "./SimulationConnection";
 import {SimulationPackage} from "./SimulationPackage";
 import {MinimalSpanTree} from "../SpanningTree/minimalSpanningTree";
-import {tryResolvePackage} from "tslint/lib/utils";
+
+export interface RoutingTableEntry {
+    target: string;
+    nextHop: string;
+}
 
 export class Bridge {
     public rootOfIndexing = false;
@@ -15,16 +19,18 @@ export class Bridge {
 
     // data for CentralSpanningTreeProtocol
     public INDEXED: boolean;
+    public BLOCKED: () => boolean = () => !this.MST;
     public DISCOVERED_LINKS: {
         nodes: { name: string, value: number }[]; // my name and a connected bridges name
         cost: number; // cost to reach the bridge
     }[] = [];
+    public ROUTING_TABLE: RoutingTableEntry[];
 
     private WAITING_FOR_BRIDGES: string[];
 
     // simulation Connection
     public connection: SimulationConnection;
-    private dumpChanges: () => void;
+    private readonly dumpChanges: () => void;
     constructor(name: string, value: number, connection: SimulationConnection, dumpChanges: (b) => void) {
         this.name = name;
         this.value = value;
@@ -52,10 +58,22 @@ export class Bridge {
 
 
     public send(pkg: SimulationPackage) {
+        pkg.sender = this.name;
         this.connection.send.next(pkg);
     }
 
     public handleCSTPPackage(pkg: SimulationPackage) {
+        if(pkg.content.mst){
+            pkg.content.mst = [...pkg.content.mst];
+            this.MST = new MinimalSpanTree(pkg.content.mst);
+            this.connection.finishedIndexing.next(this.MST);
+            this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+            this.dumpChanges();
+            if(pkg.destination !== this.name){
+                pkg.target = this.ROUTING_TABLE.find(i => i.target === pkg.destination).nextHop;
+                this.send(pkg);
+            }
+        }
         if (this.INDEXED || this.rootOfIndexing &&  pkg.content.from)
             return;
         console.log(this.name, 'received pkg');
@@ -90,6 +108,7 @@ export class Bridge {
                     } else {
                         const mst = new MinimalSpanTree(this.DISCOVERED_LINKS);
                         this.MST = mst;
+                        this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
                         this.connection.finishedIndexing.next(mst);
                     }
                     this.dumpChanges();
@@ -146,9 +165,21 @@ export class Bridge {
                     }
                 });
                 console.log('dl', this.DISCOVERED_LINKS.map(l => l.nodes));
-                console.log('l', links);
+                let linksMst = [...links];
                 const mst = new MinimalSpanTree(links);
                 this.MST = mst;
+                this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+                this.ROUTING_TABLE.forEach((item:RoutingTableEntry)=> {
+                    this.send({
+                        protocol: 'CSTP',
+                        content: {
+                            message: 'Dear Neighbor hear is my name and the package provides you the cost to me. Follow the CSTP.',
+                            mst: linksMst
+                        },
+                        target: item.nextHop,
+                        destination: item.target
+                    });
+                });
                 this.connection.finishedIndexing.next(mst);
             }
             this.dumpChanges();
@@ -158,6 +189,17 @@ export class Bridge {
     public receive(pkg: SimulationPackage) {
         if (pkg.protocol === 'CSTP') {
             this.handleCSTPPackage(pkg);
+        } else {
+            this.handlePackage(pkg);
+        }
+    }
+
+    private handlePackage(pkg: SimulationPackage) {
+        if(this.name === pkg.destination){
+            alert(this.name+ " received a pkg with: " +pkg.content);
+        }else {
+            pkg.target = this.ROUTING_TABLE.find(i => i.target === pkg.destination).nextHop;
+            this.send(pkg);
         }
     }
 }

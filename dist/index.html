@@ -25,6 +25,11 @@
             align-items: center;
         }
 
+        #pkg-card select{
+            width: fit-content;
+            justify-self: center;
+            align-self: center;
+        }
         .item {
             height: 80%;
             border: #aaa8b0 solid thin;
@@ -50,11 +55,14 @@
             <div style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
                 <button style="align-self: center;" id="simulate_btn">Simulate</button>
                 Multiplier for cost in seconds
-                <input type="number" id="mult" value="0.5">
+                <input step="0.1" type="number" id="mult" value="0.5">
             </div>
             <div style="height: 380px; width: 40%">
                 <label for="textOut">Output MST</label>
                 <textarea style="height: 100%; width: 100%" id="textOut" readonly></textarea>
+            </div>
+            <div id="pkg_test_target" style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
+
             </div>
         </div>
     </div>

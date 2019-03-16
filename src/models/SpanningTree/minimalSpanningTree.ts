@@ -55,25 +55,26 @@ export class MinimalSpanTree {
         while (!this.allNodesAreConnected(this.allNodes)) {
             let items = links.pop();
             this.shortestLinks.push(items);
-            if(this.allNodesAreConnected(this.allNodes)){
+            if (this.allNodesAreConnected(this.allNodes)) {
                 let temp, last = temp = [...this.shortestLinks];
-                while(!!temp){
+                while (!!temp) {
                     last = temp;
                     temp = this.tryToRemove(temp);
                 }
-                if(last.length < this.shortestLinks.length){
+                if (last.length < this.shortestLinks.length) {
                     this.shortestLinks = last;
                 }
             }
         }
         console.log(this.shortestLinks);
     }
-    private tryToRemove(shortestLinks){
+
+    private tryToRemove(shortestLinks) {
         let res;
         for (const l of shortestLinks) {
             let simulationLinks = [...shortestLinks];
-            simulationLinks.splice(simulationLinks.findIndex(link => link === l),1);
-            if(this.allNodesAreConnected(this.allNodes, simulationLinks)){
+            simulationLinks.splice(simulationLinks.findIndex(link => link === l), 1);
+            if (this.allNodesAreConnected(this.allNodes, simulationLinks)) {
                 res = simulationLinks;
                 break;
             }
@@ -117,4 +118,37 @@ export class MinimalSpanTree {
         return ret;
     }
 
+    getRoutingTable(name: string) {
+        const ret: {
+            target: string,
+            nextHop: string
+        }[] = [];
+        this.allNodes.filter(n => n.name !== name).forEach(node => {
+            ret.push({
+                target: node.name,
+                nextHop: this.getNextHop(name, node.name)
+            })
+        });
+        return ret;
+    }
+
+    private getNextHop(from: string, to: string, nextHop?: string, dont: string[] = []) {
+        console.log(from, to, nextHop);
+        dont.push(from);
+        const targets = this.shortestLinks.filter(l => l.nodes.findIndex(n => n.name === from) !== -1);
+        const containsTo = () => targets.findIndex(t => t.nodes.findIndex(n => n.name === to) !== -1) !== -1;
+        if (containsTo()) {
+            return !nextHop ? to : nextHop;
+        } else {
+            for (const target of targets) {
+                const n = target.nodes.find(n => n.name !== from).name;
+                if (dont.indexOf(n) === -1) {
+                    const ret = this.getNextHop(n, to, !nextHop ? n : nextHop, [...dont]);
+                    if (!!ret) {
+                       return ret;
+                    }
+                }
+            }
+        }
+    }
 }
