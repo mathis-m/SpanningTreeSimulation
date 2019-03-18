@@ -1,14 +1,15 @@
     // references to the dom
 import {parse, stringify} from "./parser";
 import {Simulation} from "./models/Simulation/Simulation";
-import {SimulationPackage} from "./models/Simulation/SimulationPackage";
 
+// get a ref to the input and output of graphs
 const inputArea = document.getElementById('textIn') as HTMLTextAreaElement;
 const outputArea = document.getElementById('textOut') as HTMLTextAreaElement;
+// trigger new simulation ref
 const simulationButton = document.getElementById('simulate_btn') as HTMLButtonElement;
 
 
-
+// example inputs
 const simpleTest = `
 Graph mygraph {
 	// Node
@@ -43,13 +44,18 @@ Graph mygraph {
 	E - F : 2;
 }`;
 inputArea.value = test;
-console.log(inputArea);
+
 // click impl
 const onSimulationClick = () => {
+    // parse input
     const parseResult = parse(inputArea.value);
+    // create new Simulation with parsed graph and a multiplier for the cost of links in seconds.
     const simulation = new Simulation(parseResult.nodes, +(document.getElementById('mult') as HTMLInputElement).value);
-    console.log(simulation);
+    // Start the simulation using my own protocol called CSTP Centralized Spanning Tree Protocol
     simulation.startIndexingFromRandomBridge().then(mst => {
+        // when it has all information of the network it returns a mst
+        // and shares it with all other bridges then where part of the indexing process.
+        // show the mst in string version
         outputArea.value = stringify(mst, parseResult.graphName);
     })
 };

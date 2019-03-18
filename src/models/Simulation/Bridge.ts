@@ -8,8 +8,6 @@ export interface RoutingTableEntry {
 }
 
 export class Bridge {
-    public rootOfIndexing = false;
-    public returnTo: string[] = [];
     // Bridge data
     public name: string;
     public value: number;
@@ -27,6 +25,10 @@ export class Bridge {
     public ROUTING_TABLE: RoutingTableEntry[];
 
     private WAITING_FOR_BRIDGES: string[];
+
+    // for view
+    public rootOfIndexing = false;
+    public returnTo: string[] = [];
 
     // simulation Connection
     public connection: SimulationConnection;
@@ -63,12 +65,13 @@ export class Bridge {
     }
 
     public handleCSTPPackage(pkg: SimulationPackage) {
+        // case content.mst
         if(pkg.content.mst){
+            // get create my mst + Routing Table
             pkg.content.mst = [...pkg.content.mst];
-            this.MST = new MinimalSpanTree(pkg.content.mst);
-            this.connection.finishedIndexing.next(this.MST);
-            this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+            this.finishMST(pkg.content.mst);
             this.dumpChanges();
+            // if i am not destination send to nextHop
             if(pkg.destination !== this.name){
                 pkg.target = this.ROUTING_TABLE.find(i => i.target === pkg.destination).nextHop;
                 this.send(pkg);
@@ -76,12 +79,10 @@ export class Bridge {
         }
         if (this.INDEXED || this.rootOfIndexing &&  pkg.content.from)
             return;
-        console.log(this.name, 'received pkg');
         if (this.DISCOVERED_LINKS.length === 0 && !this.rootOfIndexing) {
             this.connection.ping.then(bridges => {
                 this.WAITING_FOR_BRIDGES = bridges.filter(name => name !== pkg.content.from.name);
                 this.dumpChanges();
-                console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
                 this.WAITING_FOR_BRIDGES.forEach(target => this.send({
                     protocol: 'CSTP',
                     content: {
@@ -93,7 +94,6 @@ export class Bridge {
                 if (this.WAITING_FOR_BRIDGES.length === 0) {
                     const returnTo = this.DISCOVERED_LINKS[0].nodes.find(n => n.name !== this.name);
                     this.dumpChanges();
-
                     this.send({
                         protocol: 'CSTP',
                         content: {
@@ -120,20 +120,14 @@ export class Bridge {
             });
             this.returnTo.push(pkg.content.from.name);
             this.dumpChanges();
-
-            console.log("returning from ", this.name, "to ", this.returnTo);
-
         }
         if (this.WAITING_FOR_BRIDGES && !!pkg.content.discoveredLinks) {
             const name = pkg.content.discoveredLinks[0].nodes.find(n => n.name !== this.name);
             this.WAITING_FOR_BRIDGES.splice(this.WAITING_FOR_BRIDGES.findIndex(n => n === name), 1);
-            console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
             this.DISCOVERED_LINKS.push(...pkg.content.discoveredLinks);
         } else if (this.WAITING_FOR_BRIDGES && pkg.content.from) {
             this.WAITING_FOR_BRIDGES.splice(this.WAITING_FOR_BRIDGES.findIndex(n => n === pkg.content.from.name), 1);
-            console.log(this.name, " waiting for:", this.WAITING_FOR_BRIDGES);
             this.returnTo.push(pkg.content.from.name);
-            console.log("returning from ", this.name, "to ", this.returnTo);
             this.DISCOVERED_LINKS.push({
                 cost: pkg.cost,
                 nodes: [{name: this.name, value: this.value}, pkg.content.from]
@@ -142,7 +136,6 @@ export class Bridge {
         this.dumpChanges();
 
         if (!!this.WAITING_FOR_BRIDGES && this.WAITING_FOR_BRIDGES.length === 0) {
-            console.log(this.name, 'sending', this.DISCOVERED_LINKS);
             this.returnTo.forEach(target => {
                 this.send({
                     protocol: 'CSTP',
@@ -154,7 +147,6 @@ export class Bridge {
                 });
             });
             this.INDEXED = true;
-            console.log('Node has finished ', this.name);
             if (!this.rootOfIndexing) {
                 this.connection.finishedIndexing.next();
             } else {
@@ -164,11 +156,8 @@ export class Bridge {
                         links.push(l);
                     }
                 });
-                console.log('dl', this.DISCOVERED_LINKS.map(l => l.nodes));
                 let linksMst = [...links];
-                const mst = new MinimalSpanTree(links);
-                this.MST = mst;
-                this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+                this.finishMST(linksMst);
                 this.ROUTING_TABLE.forEach((item:RoutingTableEntry)=> {
                     this.send({
                         protocol: 'CSTP',
@@ -180,10 +169,15 @@ export class Bridge {
                         destination: item.target
                     });
                 });
-                this.connection.finishedIndexing.next(mst);
             }
             this.dumpChanges();
         }
+    }
+    private finishMST(links){
+        const mst = new MinimalSpanTree(links);
+        this.MST = mst;
+        this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+        this.connection.finishedIndexing.next(mst);
     }
 
     public receive(pkg: SimulationPackage) {
