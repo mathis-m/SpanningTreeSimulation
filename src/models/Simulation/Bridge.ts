@@ -104,6 +104,7 @@ export class Bridge {
                 this.returnTo.push(cstpCase.content.name);
                 this.dumpChanges();
             }
+            // if all direct connection are known
             if (!!this.WAITING_FOR_BRIDGES && this.WAITING_FOR_BRIDGES.length === 0) {
                 this.handleSpreadFinished();
                 this.dumpChanges();
