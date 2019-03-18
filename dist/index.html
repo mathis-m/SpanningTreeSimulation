@@ -13,9 +13,11 @@
             height: 100%;
             width: 100%;
         }
+
         BLOCKQUOTE {
             display: inline-block;
         }
+
         .item-container {
             width: 100%;
             height: 100%;
@@ -23,17 +25,30 @@
             flex-direction: row;
             justify-content: space-evenly;
             align-items: center;
+            justify-self: center;
+            align-self: center;
         }
 
-        #pkg-card select{
+        .item-container .item {
+            flex-basis: 10%;
+            flex-grow: 1;
+        }
+
+        .item-content {
+            border: #aaa8b0 solid thin;
+            box-shadow: 5px 5px 4px #888888;
+            max-height: 90%;
+            overflow-y: scroll;
+        }
+
+        #pkg-card select {
             width: fit-content;
             justify-self: center;
             align-self: center;
         }
+
         .item {
             height: 80%;
-            border: #aaa8b0 solid thin;
-            box-shadow: 5px 5px 4px #888888;
         }
 
         .item h3 {
@@ -43,31 +58,38 @@
 </head>
 <body>
 <div class="full-size" style="display: flex; flex-direction: column">
-    <div style="width: 100%; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+    <div style="
+    width: 100%;
+    height: 50%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: column;">
         <div style="width: 100%; text-align: center">
             <h1>Spanning Tree Simulation using custom Protocol</h1>
         </div>
-        <div style="width: 50%; display: flex; justify-content: space-between;">
-            <div style="height: 380px; width: 40%">
+        <div style="width: 90%; height: 100%; display: flex; justify-content: space-between;">
+            <div style="flex-direction: column; display: flex;flex-basis: 40%; flex-shrink: 1">
                 <label for="textIn">Input Graph</label>
                 <textarea style="height: 100%; width: 100%" id="textIn"></textarea>
             </div>
-            <div style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
+            <div style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center; flex-basis: 20%">
                 <button style="align-self: center;" id="simulate_btn">Simulate</button>
                 Multiplier for cost in seconds
-                <input step="0.1" type="number" id="mult" value="0.5">
+                <input step="0.1" type="number" id="mult" value="0.5" style="width: 30%; align-self: center">
             </div>
-            <div style="height: 380px; width: 40%">
+            <div style="flex-basis: 40%; flex-shrink: 1">
                 <label for="textOut">Output MST</label>
                 <textarea style="height: 100%; width: 100%" id="textOut" readonly></textarea>
             </div>
-            <div id="pkg_test_target" style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
+            <div id="pkg_test_target"
+                 style="align-self: center; display: flex; flex-direction: column; padding: 10px; text-align: center;">
 
             </div>
         </div>
     </div>
 
-    <div class="full-size" style="display: flex; justify-content: center; align-items: center">
+    <div style="display: flex; width: 100%; height: 50%; justify-content: center; align-items: center">
         <div id="simulationDump" class="full-size">
             <div class="item-container" id="container_target">
 
