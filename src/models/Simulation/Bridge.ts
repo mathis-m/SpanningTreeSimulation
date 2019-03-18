@@ -84,6 +84,7 @@ export class Bridge {
 
     public async handleCSTPPackage(pkg: SimulationPackage) {
         const cstpCase = this.buildCase(pkg.content);
+        console.log(cstpCase);
         // if mst share build mst and routing table
         if (cstpCase.id === 3) {
             this.handleCase3(pkg, cstpCase);
@@ -95,7 +96,7 @@ export class Bridge {
                 this.dumpChanges();
             }
             // if package contains link(s) info and waiting for that bridge
-            if (((cstpCase.id === 1 && !this.rootOfIndexing) || cstpCase.id === 2) && this.WAITING_FOR_BRIDGES.indexOf(pkg.sender) !== -1) {
+            if (((cstpCase.id === 1 && !this.rootOfIndexing) || cstpCase.id === 2) && this.WAITING_FOR_BRIDGES.length > 0) {
                 this.handleReturnedInfoFromSpread(cstpCase, pkg);
                 this.dumpChanges();
             }
@@ -128,6 +129,7 @@ export class Bridge {
     }
 
     public handleCase3(pkg: SimulationPackage, cstpCase) {
+        console.log('3');
         this.finishMST(cstpCase.content);
         // if this bridge isn't the destination of the pkg
         if (pkg.destination !== this.name) {
