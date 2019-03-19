@@ -84,25 +84,48 @@ export class Bridge {
 
     public async handleCSTPPackage(pkg: SimulationPackage) {
         const cstpCase = this.buildCase(pkg.content);
-        console.log(cstpCase);
         // if mst share build mst and routing table
         if (cstpCase.id === 3) {
             this.handleCase3(pkg, cstpCase);
+            this.dumpChanges();
         } else {
+            if (this.INDEXED || cstpCase.id === 1 && this.WAITING_FOR_BRIDGES && this.WAITING_FOR_BRIDGES.indexOf(cstpCase.content.name) === -1)
+                return;
+
             // if case 1 and first Incoming pkg and not root of indexing
-            if (this.DISCOVERED_LINKS.length === 0 && !this.rootOfIndexing && cstpCase.id === 1) {
+            let first = this.DISCOVERED_LINKS.length === 0;
+            if (first && !this.rootOfIndexing && cstpCase.id === 1) {
                 // spread to all direct connected bridges except where the pkg came from.
+                this.DISCOVERED_LINKS.push({
+                    cost: pkg.cost,
+                    nodes: [{name: this.name, value: this.value}, cstpCase.content]
+                });
                 await this.spread(pkg);
                 this.dumpChanges();
             }
             // if package contains link(s) info and waiting for that bridge
-            if (((cstpCase.id === 1 && !this.rootOfIndexing) || cstpCase.id === 2) && this.WAITING_FOR_BRIDGES.length > 0) {
+            if (((cstpCase.id === 1 && !first) || cstpCase.id === 2)) {
                 this.handleReturnedInfoFromSpread(cstpCase, pkg);
                 this.dumpChanges();
             }
             // add new returning to bridge
             if (cstpCase.id === 1 && !this.rootOfIndexing) {
-                this.returnTo.push(cstpCase.content.name);
+                if (first) {
+                    this.returnTo.push(cstpCase.content.name);
+                } else {
+                    console.log(this.name, '>', cstpCase.content.name);
+                    this.send({
+                        protocol: 'CSTP',
+                        content: {
+                            message: 'Dear Neighbor hear is my name and the package provides you the cost to me. Follow the CSTP.',
+                            discoveredLinks: [{
+                                cost: pkg.cost,
+                                nodes: [{name: this.name, value: this.value}, cstpCase.content]
+                            }]
+                        },
+                        target: cstpCase.content.name
+                    });
+                }
                 this.dumpChanges();
             }
             // if all direct connection are known
@@ -129,7 +152,6 @@ export class Bridge {
     }
 
     public handleCase3(pkg: SimulationPackage, cstpCase) {
-        console.log('3');
         this.finishMST(cstpCase.content);
         // if this bridge isn't the destination of the pkg
         if (pkg.destination !== this.name) {
@@ -156,14 +178,23 @@ export class Bridge {
     }
 
     private handleReturnedInfoFromSpread(cstpCase, pkg) {
+        if (this.name === 'C') {
+            console.log('asdasd', this.WAITING_FOR_BRIDGES, cstpCase, pkg);
+        }
+        let start = this.WAITING_FOR_BRIDGES.findIndex(n => n === pkg.sender);
+        if(start !== -1){
+            this.WAITING_FOR_BRIDGES.splice(start, 1);
+        }
         // remove sender from waiting for
-        this.WAITING_FOR_BRIDGES.splice(this.WAITING_FOR_BRIDGES.findIndex(n => n === pkg.sender), 1);
         let t = cstpCase.content;
         if (cstpCase.id === 1) {
             t = [{
                 cost: pkg.cost,
                 nodes: [{name: this.name, value: this.value}, t]
             }];
+        } else if (t[t.length - 1].cost === -1) {
+            t[t.length - 1].cost = pkg.cost;
+            t[t.length - 1].nodes.push({name: this.name, value: this.value});
         }
         // save link(s)
         this.DISCOVERED_LINKS.push(...t);
@@ -213,12 +244,16 @@ export class Bridge {
     }
 
     private sendDiscoveredLinksBack() {
+
         this.returnTo.forEach(target => {
             this.send({
                 protocol: 'CSTP',
                 content: {
                     message: 'Dear Neighbor hear are my discovered links, you may concat them with yours and send them back!',
-                    discoveredLinks: this.DISCOVERED_LINKS
+                    discoveredLinks: [...this.DISCOVERED_LINKS, {
+                        cost: -1,
+                        nodes: [{name: this.name, value: this.value}]
+                    }]
                 },
                 target
             });

@@ -17,9 +17,7 @@ export class SimulationPackage implements SimulationPackage {
         this.destination = target;
         let routingTableEntry = routingTable.find(i => i.target === this.target);
         if(!routingTableEntry){
-            console.log('no');
             debugger;
-
         }
         this.target = routingTableEntry.nextHop;
     }

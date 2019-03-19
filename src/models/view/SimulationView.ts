@@ -95,13 +95,11 @@ export const dumpBridge = (bridge: Bridge, bridges: Bridge[]) => {
 <button id="test_send">Send</button>
 `;
         const sendPkg = () => {
-            console.log('sending');
             // this.multiForCostInSeconds = +(document.getElementById('mult') as HTMLInputElement).value;
             const fromName = (document.getElementById('from') as HTMLSelectElement).value;
             const toName = (document.getElementById('to') as HTMLSelectElement).value;
             let find = bridges.find(b => b.name === fromName);
             let simulationPackage = new SimulationPackage('SOME_NORMAL', "Greetings from" + find.name, toName, find.ROUTING_TABLE);
-            console.log('here', simulationPackage);
             find.send(simulationPackage);
         };
         target.insertAdjacentElement("beforeend", new DOMParser().parseFromString(button, "text/html").getElementById('test_send'));
@@ -113,7 +111,8 @@ export const dumpBridge = (bridge: Bridge, bridges: Bridge[]) => {
         <h3>Bridge ${bridge.name}</h3>
         ${bridge.rootOfIndexing ? 'Indexing Root!' : ''}<br>
         Known links: [<br><BLOCKQUOTE>${bridge.DISCOVERED_LINKS.map(l => l.nodes.map(n => n.name).join('-') + ':' + l.cost).join(',<br>')}</BLOCKQUOTE><br>]<br>
-        ${!bridge.rootOfIndexing && bridge.INDEXED ? `<br>Node has finished indexing!<br>Returning Data to: [<br><BLOCKQUOTE>${bridge.returnTo.join(',<br>')}</BLOCKQUOTE><br>]` : ''}
+        ${`Returning Data to: [<br><BLOCKQUOTE>${bridge.returnTo.join(',<br>')}</BLOCKQUOTE><br>]`}<br>
+        ${!bridge.rootOfIndexing && bridge.INDEXED ? `<br>Node has finished indexing!<br>Returning Data to ${bridge.returnTo.join(',<br>')}` : ''}<br>
         ${bridge.rootOfIndexing && bridge.INDEXED ? `<br>Network has finished indexing!<br>MST generated.<br>Sending MST to: [<br><BLOCKQUOTE>${bridge.MST.allNodes.map(n => n.name).filter(s => s !== bridge.name).join(',<br>')}</BLOCKQUOTE><br>]` : ''}
         ${!bridge.BLOCKED() ? `<br>Received MST. Routing Table: [<br><BLOCKQUOTE>${bridge.ROUTING_TABLE.map(i => `->${i.target} via ${i.nextHop}`).join(',<br>')}</BLOCKQUOTE><br>]` : ''}
     </div>

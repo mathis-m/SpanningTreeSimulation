@@ -24,7 +24,6 @@ export class Simulation {
             let links: SpanningTreeLink[] = nodes.find(n => n.name === bridge.name).links;
             let siblingNodes = links.map(l => l.toNode);
             bridge.connection.send.subscribe((pkg: SimulationPackage) => {
-                console.log(`${bridge.name}>>>${pkg.target}`);
                 let connectedNode = siblingNodes.find(n => n === pkg.target);
                 if (!!connectedNode) {
                     pkg.cost = links.find(l => l.toNode === pkg.target).cost;
