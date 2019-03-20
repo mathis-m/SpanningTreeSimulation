@@ -44,3 +44,12 @@ This flow results in having isolated nodes that can only communicate via package
 5. The Bridge will generate a MST out of all known links using kruskal. Then it generates a Routing Table out of the MST.
 6. Then it sends to all bridges the full set of discovered links.
 7. If such a set is received do step 5 and then forward the pkg to its destination if self != destination.
+
+# Usage
+```bash
+git clone https://github.com/mathis-m/SpanningTreeSimulation.git
+cd SpanningTreeSimulation
+npm install
+npm run build
+```
+Now you can open dist/index.html and view the newly build.
