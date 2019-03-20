@@ -44,7 +44,11 @@ export class Simulation {
     public startIndexingFromRandomBridge: () => Promise<MinimalSpanTree> = () => {
         // as the protocol says send a CSTP package to all direct connected Bridges
         return new Promise<MinimalSpanTree>(async resolve => {
-            const bridge = this.bridges[Math.round(Math.random() * this.bridges.length)];
+            let rndm = Math.round(Math.random() * this.bridges.length);
+            if(rndm < 0 && rndm > this.bridges.length - 1){
+                rndm = 0;
+            }
+            const bridge = this.bridges[rndm];
             bridge.connection.finishedIndexing.subscribe((mst) => resolve(mst));
             await bridge.indexNetwork();
         });
