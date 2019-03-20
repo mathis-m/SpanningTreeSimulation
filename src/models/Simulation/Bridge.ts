@@ -96,10 +96,14 @@ export class Bridge {
             let first = this.DISCOVERED_LINKS.length === 0;
             if (first && !this.rootOfIndexing && cstpCase.id === 1) {
                 // spread to all direct connected bridges except where the pkg came from.
-                this.DISCOVERED_LINKS.push({
+                this.addLink({
                     cost: pkg.cost,
                     nodes: [{name: this.name, value: this.value}, cstpCase.content]
                 });
+               /* this.DISCOVERED_LINKS.push({
+                    cost: pkg.cost,
+                    nodes: [{name: this.name, value: this.value}, cstpCase.content]
+                });*/
                 await this.spread(pkg);
                 this.dumpChanges();
             }
@@ -130,10 +134,23 @@ export class Bridge {
             }
             // if all direct connection are known
             if (!!this.WAITING_FOR_BRIDGES && this.WAITING_FOR_BRIDGES.length === 0) {
-                this.handleSpreadFinished();
+                this.handleSpreadFinished(pkg.sender);
                 this.dumpChanges();
             }
         }
+    }
+    private addLink(links){
+        console.log(links.length === undefined);
+        if(links.length === undefined){
+            links = [links];
+        }
+        this.DISCOVERED_LINKS.push(...links.filter(l => !this.checkLinkKnown(l.nodes.map(n => n.name))));
+    }
+    private checkLinkKnown(nodes: string[]){
+        if(nodes[0] === nodes[1]){
+            return true;
+        }
+        return this.DISCOVERED_LINKS.findIndex(l => l.nodes.findIndex(n => n.name === nodes[0]) !== -1 && l.nodes.findIndex(n => n.name === nodes[1]) !== -1) !== -1
     }
 
     private buildCase(content: any) {
@@ -152,7 +169,7 @@ export class Bridge {
     }
 
     public handleCase3(pkg: SimulationPackage, cstpCase) {
-        this.finishMST(cstpCase.content);
+        this.finishMST(cstpCase.content, pkg.sender);
         // if this bridge isn't the destination of the pkg
         if (pkg.destination !== this.name) {
             // send pkg tto nextHop
@@ -197,29 +214,30 @@ export class Bridge {
             t[t.length - 1].nodes.push({name: this.name, value: this.value});
         }
         // save link(s)
-        this.DISCOVERED_LINKS.push(...t);
+        this.addLink([...t]);
+        //this.DISCOVERED_LINKS.push(...t);
     }
 
-    private finishMST(links) {
+    private finishMST(links, sender) {
         const mst = new MinimalSpanTree(links);
         this.MST = mst;
-        this.ROUTING_TABLE = this.MST.getRoutingTable(this.name);
+        this.ROUTING_TABLE = this.MST.getRoutingTable(this.name, sender);
         this.connection.finishedIndexing.next(mst);
     }
 
-    private handleSpreadFinished() {
+    private handleSpreadFinished(sender) {
         this.sendDiscoveredLinksBack();
         this.INDEXED = true;
         if (!this.rootOfIndexing) {
             this.connection.finishedIndexing.next();
         } else {
-            this.shareMst();
+            this.shareMst(sender);
         }
     }
 
-    private shareMst() {
+    private shareMst(sender) {
         let linksMst = this.getLinks();
-        this.finishMST(linksMst);
+        this.finishMST(linksMst, sender);
         this.ROUTING_TABLE.forEach((item: RoutingTableEntry) => {
             this.send({
                 protocol: 'CSTP',
